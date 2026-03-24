@@ -129,7 +129,7 @@ const TimelineView: React.FC = () => {
 
           {/* Rows */}
           <div>
-            {rows.map((row, idx) => {
+            {rows.map((row) => {
               if (row.type === 'header') {
                 return (
                   <div
@@ -167,7 +167,7 @@ const TimelineView: React.FC = () => {
               } else {
                 const effectiveStart = startDate < monthStart ? monthStart : startDate;
                 const effectiveEnd = dueDate > monthEnd ? monthEnd : dueDate;
-                
+
                 const startDay = effectiveStart.getMonth() === month && effectiveStart.getFullYear() === year
                   ? effectiveStart.getDate() - 1 : 0;
                 const endDay = effectiveEnd.getMonth() === month && effectiveEnd.getFullYear() === year

@@ -102,7 +102,6 @@ const TASK_TITLES: string[] = [
   'Fix Docker container networking',
 ];
 
-const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low'];
 const STATUSES = ['todo', 'in-progress', 'in-review', 'done'] as const;
 
 const PRIORITY_WEIGHTS = [
