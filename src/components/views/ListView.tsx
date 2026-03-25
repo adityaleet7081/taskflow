@@ -11,6 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import { useCollabStore, getTaskCollabUsers } from '../../store/collabStore';
 
 const ITEM_HEIGHT = 56;
+
 const STATUS_OPTIONS: { value: Status; label: string }[] = [
   { value: 'todo', label: 'To Do' },
   { value: 'in-progress', label: 'In Progress' },
@@ -18,7 +19,15 @@ const STATUS_OPTIONS: { value: Status; label: string }[] = [
   { value: 'done', label: 'Done' },
 ];
 
-const SORT_FIELDS: { field: SortField; label: string }[] = [
+const STATUS_COLORS: Record<Status, string> = {
+  'todo': 'bg-slate-100 text-slate-600',
+  'in-progress': 'bg-blue-50 text-blue-700',
+  'in-review': 'bg-purple-50 text-purple-700',
+  'done': 'bg-green-50 text-green-700',
+};
+
+// Only 3 sortable columns — no duplicate
+const SORT_COLUMNS: { field: SortField; label: string }[] = [
   { field: 'title', label: 'Title' },
   { field: 'priority', label: 'Priority' },
   { field: 'dueDate', label: 'Due Date' },
@@ -85,25 +94,29 @@ const ListView: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* Header Row */}
-      <div className="grid grid-cols-[1fr_140px_100px_130px_120px_40px] gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-        {SORT_FIELDS.map(({ field, label }) => (
+      {/* Header Row — 5 columns, no duplicate */}
+      <div className="grid grid-cols-[1fr_160px_120px_150px_44px] px-4 py-3 bg-slate-50 border-b border-slate-200">
+        {SORT_COLUMNS.map(({ field, label }) => (
           <button
             key={field}
             onClick={() => toggleSort(field)}
-            className="flex items-center gap-1 hover:bg-slate-100 rounded px-1 py-0.5 -mx-1 transition-colors duration-150 cursor-pointer text-left"
+            className={`flex items-center gap-1 text-xs font-semibold tracking-wide rounded px-1 py-0.5 -mx-1 transition-colors duration-150 cursor-pointer text-left
+              ${sortConfig?.field === field ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'}`}
           >
             {label}
-            {sortConfig?.field === field && (
-              <span className="text-indigo-600">
-                {sortConfig.direction === 'asc' ? '↑' : '↓'}
-              </span>
-            )}
+            <span className="text-[10px]">
+              {sortConfig?.field === field
+                ? sortConfig.direction === 'asc' ? '↑' : '↓'
+                : <span className="text-slate-300">↕</span>}
+            </span>
           </button>
         ))}
-        <span>Status</span>
-        <span>Due Date</span>
-        <span></span>
+        {/* Status — not sortable */}
+        <span className="text-xs font-semibold text-slate-500 tracking-wide flex items-center">
+          Status
+        </span>
+        {/* Collab — empty header */}
+        <span />
       </div>
 
       {/* Scrollable Body */}
@@ -141,31 +154,40 @@ const ListRow: React.FC<ListRowProps> = React.memo(({ task, collabUsers, onStatu
 
   return (
     <div
-      className="grid grid-cols-[1fr_140px_100px_130px_120px_40px] gap-2 px-4 items-center border-b border-slate-100 hover:bg-slate-50/70 transition-colors duration-150"
+      className="grid grid-cols-[1fr_160px_120px_150px_44px] px-4 items-center border-b border-slate-100 hover:bg-slate-50/80 transition-colors duration-150"
       style={{ height: ITEM_HEIGHT }}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Title */}
+      <div className="flex items-center gap-2 min-w-0 pr-2">
         <span className="text-sm font-medium text-slate-800 truncate">{task.title}</span>
       </div>
 
+      {/* Assignee */}
       <div className="flex items-center gap-2 min-w-0">
         {assignee && <Avatar name={assignee.name} color={assignee.color} size="sm" />}
         <span className="text-xs text-slate-600 truncate">{assignee?.name.split(' ')[0]}</span>
       </div>
 
+      {/* Priority */}
       <div>
         <PriorityBadge priority={task.priority} compact />
       </div>
 
+      {/* Due Date */}
+      <span className={`text-xs font-medium ${dueDateColor}`}>
+        {formatDueDate(task.dueDate)}
+      </span>
+
+      {/* Status inline dropdown */}
       <div className="relative">
         <button
           onClick={() => setStatusOpen(!statusOpen)}
-          className="text-xs font-medium px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 transition-colors duration-150 text-slate-700"
+          className={`text-xs font-medium px-2.5 py-1 rounded-full transition-colors duration-150 whitespace-nowrap ${STATUS_COLORS[task.status]}`}
         >
           {STATUS_OPTIONS.find((s) => s.value === task.status)?.label}
         </button>
         {statusOpen && (
-          <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 w-36 animate-dropdown-in">
+          <div className="absolute top-full right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 py-1 w-36 animate-dropdown-in">
             {STATUS_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
@@ -173,11 +195,10 @@ const ListRow: React.FC<ListRowProps> = React.memo(({ task, collabUsers, onStatu
                   onStatusChange(task.id, opt.value);
                   setStatusOpen(false);
                 }}
-                className={`w-full text-left px-3 py-1.5 text-xs transition-colors duration-150 ${
-                  task.status === opt.value
+                className={`w-full text-left px-3 py-1.5 text-xs transition-colors duration-150 ${task.status === opt.value
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
                     : 'text-slate-700 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 {opt.label}
               </button>
@@ -186,10 +207,7 @@ const ListRow: React.FC<ListRowProps> = React.memo(({ task, collabUsers, onStatu
         )}
       </div>
 
-      <span className={`text-xs font-medium ${dueDateColor}`}>
-        {formatDueDate(task.dueDate)}
-      </span>
-
+      {/* Collab */}
       <CollabIndicator users={collabUsers} maxVisible={1} />
     </div>
   );
