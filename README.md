@@ -69,4 +69,8 @@ Three simulated users (Priya S., Luca M., Nina K.) move between random tasks eve
 
 ## Note
 
-Lighthouse screenshot will be added after deployment.
+## Lighthouse Score
+![Lighthouse Score](./lighthouse.png)
+The hardest UI problem was implementing the custom drag-and-drop system without any libraries. The core challenge was maintaining layout integrity during a drag — when a card is lifted, the column must not collapse or reflow. I solved this by keeping the original card in the DOM but setting visibility: hidden while rendering a separate placeholder div with identical dimensions in its place. This means the column layout never shifts — the placeholder occupies the exact space the card did, preventing any reflow.
+For the drag itself, I used Pointer Events instead of the HTML5 Drag API because pointer events work identically on both mouse and touch devices. On pointerdown, I clone the card into a position: fixed ghost element appended to document.body, completely outside the React tree. On pointermove, I translate the ghost using transform: translate3d for GPU-accelerated movement. Drop zones are detected via document.elementsFromPoint(). If dropped outside a valid column, the ghost animates back to its origin using a CSS transition before being removed.
+If I had more time, I would refactor the virtual scrolling hook to support dynamic row heights rather than the current fixed 56px assumption. This would make the List View more flexible — supporting expandable rows or variable content — without sacrificing the performance benefits of windowed rendering.
